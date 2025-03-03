@@ -15,4 +15,10 @@ public class ViewController {
         mav.addObject("paymentToken", paymentToken); // paymentToken을 모델에 추가
         return mav;
     }
+
+    @GetMapping("/payment/error")
+    public ModelAndView showInvalidPaymentPage() {
+        ModelAndView modelAndView = new ModelAndView(("payment-error"));
+        return modelAndView;
+    }
 }

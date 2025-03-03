@@ -1,8 +1,10 @@
 package com.example.mock_psp_example.controller;
 
 import com.example.mock_psp_example.service.WebhookService;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import lombok.*;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.env.Environment;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -18,8 +20,10 @@ import java.util.concurrent.ConcurrentSkipListSet;
 @RequiredArgsConstructor
 public class ApiController {
     private final WebhookService webhookService;
+    private final Environment environment;
     Map<String, String> paymentTokenStorage = new ConcurrentHashMap<>();
     Set<String> idempotencyStorage = new ConcurrentSkipListSet<>();
+    Set<String> paymentDoneChecker = new ConcurrentSkipListSet<>();
 
     @PostMapping("/api/payment/enroll")
     public ResponseEntity<ResDto> handleEnroll(@RequestHeader(value = "X-PopularPsp-Idempotency-Key") String idempotencyKey, @RequestBody EnrollReqDto reqDto) {
@@ -47,12 +51,20 @@ public class ApiController {
         if(!paymentTokenStorage.containsKey(paymentToken)) {
             throw new IllegalArgumentException("INVALID Payment Token");
         }
+        if(paymentDoneChecker.contains(paymentToken)) {
+            return ResponseEntity.status(HttpStatus.FOUND)
+                    .header(HttpHeaders.LOCATION, environment.getProperty("url.invalid-access"))
+                    .build();
+        }
+        paymentDoneChecker.add(paymentToken);
 
         // TODO. 비동기로 웹훅을 호출하는 코드 작성하기
+        int a = (int) (Thread.currentThread().getId() % 4);
+        String status = a < 3 ? "SUCCESS" : "FAILED";
         WebhookEvenReqDto webhookEvenReqDto = WebhookEvenReqDto.builder()
                 .paymentToken(paymentToken)
                 .eventType("PAYMENT_STATUS_CHANGED")
-                .status("SUCCESS")
+                .status(status)
                 .build();
         webhookService.sendWebhookEvent(webhookEvenReqDto);
 
