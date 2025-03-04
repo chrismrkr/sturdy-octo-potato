@@ -67,7 +67,7 @@
         const paymentToken = document.getElementById("paymentToken").value;
         const cardNumber = document.getElementById("cardNumber").value;
 
-        fetch("/api/payment", {
+        fetch("/pg/api/payment", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json"
